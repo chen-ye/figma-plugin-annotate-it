@@ -15,7 +15,7 @@ import detectNodeCollisions from '@/utils/detectNodeCollisions'
 export default ({ createOneIfItDoesNotExist = true, id = null } = {}) => {
   let annotWrapperNode = <FrameNode>null
   if (id)
-    annotWrapperNode = <FrameNode>figma.currentPage.findChild(node => {
+    annotWrapperNode = <FrameNode>figma.currentPage.findOne(node => {
       return node.type  === 'FRAME'
           && node.name  === config.annotWrapperNodeName
           && node.id    === id

@@ -121,7 +121,7 @@ export const randomId = ( idLength: number = 16 ) => {
 
 
 export const getAllAnnotWrapperNodes = () => {
-  return <[FrameNode]>figma.currentPage.findChildren(node => 
+  return <[FrameNode]>figma.currentPage.findAll(node =>
     node.type === 'FRAME' && node.name === config.annotWrapperNodeName
   )
 }
