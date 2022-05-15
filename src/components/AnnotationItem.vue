@@ -12,9 +12,9 @@
       #{{ itemKey + 1 }}
     </SectionTitle>
 
-    <input 
-      class="annotationItem-inputTitle" 
-      type="text" 
+    <input
+      class="annotationItem-inputTitle"
+      type="text"
       placeholder="Title"
       v-model="value.title" />
 
@@ -22,12 +22,18 @@
       <RichTextEditor v-model="value.content" :isSkeleton="showSkeleton" />
     </div>
 
-    <ColorStyleControl
-      class="annotationItem-colorStyleControl"
-      v-model="value.colorThemeId" />
+    <div class="annotationItem-misc">
+      <ColorStyleControl
+        v-model="value.colorThemeId" />
 
-    <Button 
-      buttonType="icon" 
+      <div v-for="(connectedNodeId, i) in value.connectedNodeIds" :key="connectedNodeId">
+        <ConnectedNodeControl
+          v-model="value.connectedNodeIds[i]" />
+      </div>
+    </div>
+
+    <Button
+      buttonType="icon"
       class="annotationItem-removeButton"
       v-tooltip.bottom-left="`Delete annotation`"
       @click="removeAnnotation">
@@ -42,6 +48,7 @@
   import Icon from '@/components/ui/Icon'
   import Button from '@/components/ui/Button'
   import ColorStyleControl from '@/components/ui/ColorStyleControl'
+  import ConnectedNodeControl from '@/components/ui/ConnectedNodeControl'
 
   import RichTextEditor from '@/components/ui/RichTextEditor'
 
@@ -50,11 +57,12 @@
   // const contentPlaceholder = 'Your annotation Description goes here.\nYou can format the text with Markdown like\n**bold** or _italic_, - unordered, 1. ordered, --- divider'
 
   export default {
-    components: { 
-      SectionTitle, 
+    components: {
+      SectionTitle,
       Icon,
       Button,
       ColorStyleControl,
+      ConnectedNodeControl,
       RichTextEditor
     },
 
@@ -65,7 +73,7 @@
       },
       value: {
         type: Object,
-        default: () => generateAnnotItemObject('Your annotation Title goes here')
+        default: () => generateAnnotItemObject()
       },
       itemKey: {
         type: Number,
@@ -92,8 +100,11 @@
     width: calc(100% - 8px);
     margin: 0 8px 24px 0;
     display: grid;
-    grid-template-columns: 24px auto 1fr 32px;
-    grid-template-rows: 40px 1fr min-content;
+    grid-template:
+      "drg num title del" 40px
+      "... ... descr ..." 1fr
+      "... ... misc  ..." min-content
+      / 24px auto 1fr 32px;
     align-items: center;
     gap: 6px 8px;
 
@@ -108,20 +119,20 @@
     }
 
     &-dragHandleButton {
-      grid-column: 1 / 2;
+      grid-area: drg;
       background: transparent;
       cursor: grab;
       opacity: 0;
       transition: opacity 150ms ease;
       margin-left: 8px;
-      
+
       ::v-deep * {
         color: $color--black-3!important;
       }
     }
 
     &-number {
-      grid-column: 2 / 3;
+      grid-area: num;
       margin-left: 0;
       max-width: 24px;
       color: $color--black-8;
@@ -130,7 +141,7 @@
     }
 
     &-inputTitle {
-      grid-column: 3 / 4;
+      grid-area: title;
       padding: 8px;
       width: 100%;
       background: $color--background-white;
@@ -146,13 +157,12 @@
     }
 
     &-inputEditor {
-      grid-column: 3 / 4;
-      grid-row: 2 / 3;
+      grid-area: descr;
       position: relative;
 
       ::v-deep .editor {
         // padding: 12px 8px;
-        
+
         *[contenteditable=true] {
           padding: 12px 8px;
           min-height: calc(calc(12px * 2) + calc(16px * 3)); // padding + 3 line-heights
@@ -167,13 +177,15 @@
       border-radius: 3px;
     }
 
-    &-colorStyleControl {
-      grid-row: 3 / 4;
-      grid-column: 3 / 4;
+    &-misc {
+      grid-area: misc;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
     }
 
     &-removeButton {
-      grid-column: 4 / 5;
+      grid-area: del;
       background: transparent;
     }
   }

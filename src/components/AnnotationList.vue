@@ -100,7 +100,9 @@
       'allData'() { return store.annotData.find(el => el.id === this.selectedWrapperFrameId) },
       'data_str'() { return JSON.stringify(this.allData.annotData) },
       'watchAnnotations': { get: () => store.watchAnnotations, set: mutations.setWatchAnnotations },
-      'selectedWrapperFrameId': () => store.selectedWrapperFrameId
+      'selectedWrapperFrameId': () => store.selectedWrapperFrameId,
+      'userSelection': () => store.userSelection,
+      'userSelectionIds': () => this.userSelection.map((selection) => selection.id),
     },
 
     data: () => ({
@@ -121,7 +123,7 @@
 
         // Now "really" delete it.
         await this.toggleWatcher(false)
-        mutations.updateAnnotDataAnnot(this.selectedWrapperFrameId, itemId, null, true) 
+        mutations.updateAnnotDataAnnot(this.selectedWrapperFrameId, itemId, null, true)
         await this.toggleWatcher(true)
       },
 
@@ -138,7 +140,10 @@
       },
 
       async addAnnotDataNewAnnot() {
-        mutations.addAnnotDataNewAnnot(this.selectedWrapperFrameId, generateAnnotItemObject())
+        mutations.addAnnotDataNewAnnot(
+          this.selectedWrapperFrameId,
+          generateAnnotItemObject(this.userSelectionIds)
+        )
 
         await this.$nextTick()
         this.$refs.scrollContainer.scrollTo({ // Scroll to bottom
@@ -153,11 +158,11 @@
         this.$refs.titleContent.focus();
       },
 
-      focusFrame(figmaFrameId) {
+      focusFrame(figmaNodeId) {
         parent.postMessage({ pluginMessage: {
-          type: 'focusFrame', 
-          value: { 
-            figmaFrameId
+          type: 'focusNode',
+          value: {
+            figmaNodeId
           }
         }}, '*')
       }
@@ -166,8 +171,8 @@
     watch: {
       'allData.pluginData.connectedFrameAliasName'( newVal ) {
         parent.postMessage({ pluginMessage: {
-          type: 'pushAnnotWrapperTitleChange', 
-          value: { 
+          type: 'pushAnnotWrapperTitleChange',
+          value: {
             wrapperFrameId: this.selectedWrapperFrameId,
             newVal: newVal && newVal.trim()
           }
@@ -177,10 +182,10 @@
       'data_str'( newAnnots_str, oldAnnots_str ) {
         if (!this.watchAnnotations) return
         parent.postMessage({ pluginMessage: {
-          type: 'pushAnnotChanges', 
-          value: { 
+          type: 'pushAnnotChanges',
+          value: {
             wrapperFrameId: this.selectedWrapperFrameId,
-            newAnnots: JSON.parse(newAnnots_str), 
+            newAnnots: JSON.parse(newAnnots_str),
             oldAnnots: JSON.parse(oldAnnots_str)
           }
         }}, '*')
@@ -190,6 +195,7 @@
 
   /**
    * Re-sorts the given array based on a drop-event.
+   *
    * @param arr The original array.
    * @param dropResult The data of the new Result.
    * @returns The new, correctly sorted array.
@@ -207,7 +213,7 @@
 
     if (addedIndex !== null)
       result.splice(addedIndex, 0, itemToAdd)
-    
+
     return result
   }
 </script>
@@ -252,7 +258,7 @@
           max-width: 300px;
           line-height: 1.25;
           border: none;
-          
+
           &:hover {
             box-shadow: inset 0 0 0 1px $color--special-black-1;
           }

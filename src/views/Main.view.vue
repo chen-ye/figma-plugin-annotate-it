@@ -52,7 +52,8 @@
       'annotData':              { get: () => store.annotData,               set: mutations.setAnnotData },
       'watchAnnotations':       { get: () => store.watchAnnotations,        set: mutations.setWatchAnnotations },
       'userSelection':          { get: () => store.userSelection,           set: mutations.setUserSelection },
-      'selectedWrapperFrameId': { get: () => store.selectedWrapperFrameId,  set: mutations.setSelectedWrapperFrameId }
+      'selectedWrapperFrameId': { get: () => store.selectedWrapperFrameId,  set: mutations.setSelectedWrapperFrameId },
+      'userSelectionIds': () => this.userSelection.map((selection) => selection.id)
     },
 
     methods: {
@@ -87,23 +88,29 @@
               // if (!this.selectedWrapperFrameId)
                 this.selectedWrapperFrameId = wrapperFrameId
             }
-          
+
             await this.toggleWatcher(true)
             break
 
-          case 'selectionUpdated': 
+          case 'selectionUpdated':
             this.userSelection = msgValue
             break
 
           case 'createFirstAnnot_wrapperNodeCreated':
-            mutations.addAnnotDataNewAnnot(this.selectedWrapperFrameId, generateAnnotItemObject())
+            mutations.addAnnotDataNewAnnot(
+              this.selectedWrapperFrameId,
+              generateAnnotItemObject(this.userSelectionIds)
+            )
             break
 
           case 'createAnnotGroup_wrapperNodeCreated':
             this.selectedWrapperFrameId = msgValue.createdWrapperNodeId
 
             await this.toggleWatcher(true)
-            mutations.addAnnotDataNewAnnot(msgValue.createdWrapperNodeId, generateAnnotItemObject())
+            mutations.addAnnotDataNewAnnot(
+              this.selectedWrapperFrameId,
+              generateAnnotItemObject(this.userSelectionIds)
+            )
 
             break
 

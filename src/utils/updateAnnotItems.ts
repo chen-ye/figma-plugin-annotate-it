@@ -15,9 +15,10 @@ import {
   updateAnnotItemsBadgeIndex,
   getAnnotMarkerBadgeNodes,
   checkIfNodeIsBadge,
-  updateAnnotItemBadgeColor, 
+  updateAnnotItemBadgeColor,
   getPluginData,
-  getAnnotItemNodesFromWrapper
+  getAnnotItemNodesFromWrapper,
+  calculateAnnotMarkerBadgePosition
 } from '@/utils/utils'
 
 
@@ -39,6 +40,7 @@ export default ( newAnnots: Annotation[], oldAnnots: Annotation[], wrapperFrameI
   
   // Loop through array of diff objects
   for (let i = 0; i < annotArr.length; i++) {
+    const annotIndex = i + 1
     const annotDiffObj = annotArr[i]
 
     // Handle annotation items reordering
@@ -50,17 +52,18 @@ export default ( newAnnots: Annotation[], oldAnnots: Annotation[], wrapperFrameI
     
     switch (annotDiffObj.status) {
       case 'ADDED': {
-        const { current: newItem } = annotDiffObj,
-              currSel = figma.currentPage.selection?.[0]
+        const { current: newItem } : { current: Annotation } = annotDiffObj
 
-        // Get index for annotation badge
-        const annotIndex = annotItemNodes.length + 1
         annotWrapperNode.appendChild(generateAnnotItemNode(newItem, annotIndex))
 
         // Get the node for the badge marker item
         const badgeMarkerNode = generateAnnotBadgeNode(annotIndex, newItem.id)
 
-        const { x, y } = _calculateAnnotMarkerBadgePosition(annotWrapperNode, currSel, badgeMarkerNode)
+        const { x, y } = calculateAnnotMarkerBadgePosition(
+          newItem.connectedNodeIds?.[0],
+          annotWrapperNode,
+          badgeMarkerNode
+        )
         badgeMarkerNode.x = x
         badgeMarkerNode.y = y
 
@@ -103,6 +106,38 @@ export default ( newAnnots: Annotation[], oldAnnots: Annotation[], wrapperFrameI
 
               case 'colorThemeId':
                 updateAnnotItemBadgeColor(wrapperFrameId, item.id.current, newValue)
+                break
+
+              case 'connectedNodeIds':
+                const nodeIdDiffs = item.connectedNodeIds._
+                const badgeMarkerNodes = getAnnotMarkerBadgeNodes(modifiedItemWithoutDiff.id);
+                for (let j = 0; j < nodeIdDiffs.length; j++) {
+                  const diff = nodeIdDiffs[j]
+                  let badgeMarkerNode
+                  switch (diff.status) {
+                    case 'EQUAL':
+                      break
+                    case 'ADDED':
+                      badgeMarkerNode = generateAnnotBadgeNode(annotIndex, modifiedItemWithoutDiff.id)
+                      figma.currentPage.appendChild(badgeMarkerNode)
+                      break
+                    case 'MODIFIED':
+                      badgeMarkerNode = badgeMarkerNodes[i]
+                      break
+                    case 'DELETED':
+                      badgeMarkerNodes[i].remove()
+                  }
+                  if (badgeMarkerNode) {
+                    const { x, y } = calculateAnnotMarkerBadgePosition(
+                      diff.current,
+                      annotWrapperNode,
+                      badgeMarkerNode
+                    )
+                    badgeMarkerNode.x = x
+                    badgeMarkerNode.y = y
+                  }
+                }
+                break
             }
 
             // console.log(`Detected a change in ${entryName}`)
@@ -263,46 +298,4 @@ const _createAnnotDiff_blockContentSectionToString = ( annotArr ) => {
       })
     }
   })
-}
-
-
-const _calculateAnnotMarkerBadgePosition = ( annotWrapperNode: SceneNode, currSel: SceneNode, badgeMarkerNode: SceneNode, startAtY?: number ) => {
-  const spaceBetweenSelAndBadge = badgeMarkerNode.width - 8, // 8px overlap
-        wrapperNodePluginData = getPluginData(annotWrapperNode, config.annotWrapperNodePluginDataKey) // Get pluginData from the wrapperNode
-
-  let nodeToGlueAnnotMarkerTo = null
-
-  if (!wrapperNodePluginData.connectedFrameId && !currSel)
-    return { x: 0, y: 0 }
-
-  if (currSel)
-    nodeToGlueAnnotMarkerTo = currSel
-  else {
-    let frame = figma.currentPage.findOne(( node: SceneNode ) => {
-      return node.id === wrapperNodePluginData.connectedFrameId
-    })
-    if (!frame) // If connected frame doesn't exist anymore :(
-      return { x: 0, y: 0 }
-    else
-      nodeToGlueAnnotMarkerTo = frame
-  }
-    
-  if (!startAtY)
-    startAtY = nodeToGlueAnnotMarkerTo.absoluteTransform[1][2] + ((nodeToGlueAnnotMarkerTo.height / 2 - (badgeMarkerNode.width / 2)))
-
-  let wantedPos = {
-    x: nodeToGlueAnnotMarkerTo.absoluteTransform[0][2] - spaceBetweenSelAndBadge,
-    y: startAtY,
-    width: badgeMarkerNode.width,
-    height: badgeMarkerNode.height
-  }
-
-  const collidableNodes = figma.currentPage.findChildren(node => checkIfNodeIsBadge(node)),
-        detectedCollision = detectNodeCollisions(collidableNodes, wantedPos).find(nodeObj => {
-          return nodeObj.id !== badgeMarkerNode.id
-        })
-
-  return detectedCollision
-    ? _calculateAnnotMarkerBadgePosition(annotWrapperNode, currSel, badgeMarkerNode, startAtY + badgeMarkerNode.height + 8)
-    : { x: wantedPos.x, y: wantedPos.y }
 }

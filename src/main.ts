@@ -85,10 +85,10 @@ figma.ui.on('message', async msg => {
 			break
 		}
 
-		case "focusFrame": {
-			let node = figma.getNodeById(msgValue.figmaFrameId)
+		case 'focusNode': {
+			let node = figma.getNodeById(msgValue.figmaNodeId)
 			if (node.type === 'DOCUMENT' || node.type === 'PAGE') {
-				return;
+				return
 			}
 			figma.currentPage.selection = [node]
 			figma.viewport.scrollAndZoomIntoView([node])

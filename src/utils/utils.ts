@@ -1,4 +1,5 @@
-import getAnnotWrapperNode from "./getAnnotWrapperNode"
+import getAnnotWrapperNode from './getAnnotWrapperNode'
+import detectNodeCollisions from '@/utils/detectNodeCollisions'
 
 export const config = {
   annotWrapperNodeName: 'Annotate it! – Frame',
@@ -127,12 +128,15 @@ export const getAllAnnotWrapperNodes = () => {
 }
 
 
-export const generateAnnotItemObject = ( title = '', content = null ) : Annotation => ({
+export const generateAnnotItemObject = (
+  connectedNodeIds: string[] = []
+) : Annotation => ({
   id: randomId(),
-  title,
-  content: content || [{ type: 'paragraph' }],
+  title: '',
+  content: [{ type: 'paragraph' }],
   isDeleted: false,
-  colorThemeId: getUserColorThemes()[0].id
+  colorThemeId: getUserColorThemes()[0].id,
+  connectedNodeIds,
 })
 
 
@@ -266,4 +270,55 @@ const _updateAnnotItemBadgeColor_updateTextColor = ( badgeNode: InstanceNode, co
 
 const _getAnnotItemBadgeNode = ( annotItemNode: FrameNode, annotId: string ) => {
   return <InstanceNode>annotItemNode.findOne(node => checkIfNodeIsBadge(node, annotId))
+}
+
+
+export const calculateAnnotMarkerBadgePosition = (
+  connectedNodeId: string,
+  annotWrapperNode: SceneNode,
+  badgeMarkerNode: SceneNode,
+  startAtY?: number
+) => {
+  const spaceBetweenSelAndBadge = badgeMarkerNode.width - 8; // 8px overlap
+  const wrapperNodePluginData: AnnotWrapperPluginData = getPluginData(
+    annotWrapperNode,
+    config.annotItemNodePluginDataKey
+  );
+
+  if (!connectedNodeId) return { x: 0, y: 0 }
+
+  const targetNode = (figma.getNodeById(connectedNodeId) ??
+    figma.getNodeById(wrapperNodePluginData.connectedFrameId)) as SceneNode;
+
+  if (!targetNode) return { x: 0, y: 0 }
+
+  if (!startAtY)
+    startAtY =
+      targetNode.absoluteTransform[1][2] +
+      (targetNode.height / 2 - badgeMarkerNode.width / 2)
+
+  let wantedPos = {
+    x: targetNode.absoluteTransform[0][2] - spaceBetweenSelAndBadge,
+    y: startAtY,
+    width: badgeMarkerNode.width,
+    height: badgeMarkerNode.height,
+  }
+
+  const collidableNodes = figma.currentPage.findChildren((node) =>
+      checkIfNodeIsBadge(node)
+    ),
+    detectedCollision = detectNodeCollisions(collidableNodes, wantedPos).find(
+      (nodeObj) => {
+        return nodeObj.id !== badgeMarkerNode.id;
+      }
+    )
+
+  return detectedCollision
+    ? calculateAnnotMarkerBadgePosition(
+        connectedNodeId,
+        annotWrapperNode,
+        badgeMarkerNode,
+        startAtY + badgeMarkerNode.height + 8
+      )
+    : { x: wantedPos.x, y: wantedPos.y }
 }

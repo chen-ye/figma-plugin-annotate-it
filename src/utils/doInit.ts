@@ -22,7 +22,7 @@ export default async () => {
 		figma.loadFontAsync(generateFontNameConfig({ isBold: true, isItalic: true }))
 	])
 
-	const value = [],
+	const value: AnnotWrapperDefinition[] = [],
 				annotWrappers = getAllAnnotWrapperNodes()
 
 	if (annotWrappers.length) {
@@ -45,6 +45,15 @@ export default async () => {
 			value.push({ id: wrapperNode.id, pluginData, annotData })
 		}
 	}
+
+	const collator = new Intl.Collator(undefined, {
+		numeric: true,
+	})
+
+	value.sort(
+		(wrapperA, wrapperB) =>
+			collator.compare(wrapperA.pluginData.connectedFrameAliasName, wrapperB.pluginData.connectedFrameAliasName)
+	)
 
 	figma.ui.postMessage({ type: 'doInit', value })
 }

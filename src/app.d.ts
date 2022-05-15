@@ -16,12 +16,23 @@ declare global {
     content: ContentBlock[],
     id: string,
     isDeleted: boolean,
-    title: string
+    title: string,
+    connectedNodeIds: string[]
+  }
+
+  type AnnotWrapperDefinition = {
+    id: string,
+    pluginData: AnnotWrapperPluginData,
+    annotData: Annotation[]
   }
 
   type AnnotWrapperPluginData = {
     connectedFrameId: string,
     connectedFrameAliasName: string
+  }
+
+  type UISceneNode = {
+    id: string
   }
 }
 
